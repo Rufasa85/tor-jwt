@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {User,Todo} = require('../models');
 const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
 
 router.post("/",(req,res)=>{
     User.create(req.body).then(newser=>{
@@ -19,12 +20,22 @@ router.post("/login",(req,res)=>{
         include:[Todo]
     }).then(foundUser=>{
         if(!foundUser){
-            return res.status(403).json({msg:"invalid login"})
+            return res.status(401).json({msg:"invalid login"})
         }
         else if(!bcrypt.compareSync(req.body.password,foundUser.password)){
-            return res.status(403).json({msg:"invalid login"})
+            return res.status(401).json({msg:"invalid login"})
         } else {
-            res.json(foundUser)
+            const token = jwt.sign({
+                id:foundUser.id,
+                email:foundUser.email
+            },process.env.JWT_SECRET,{
+                expiresIn:"2h"
+            })
+            console.log('token', token)
+            res.json({
+                token:token,
+                user:foundUser
+            })
         }
     })
 })
